@@ -47,6 +47,12 @@ namespace VRCFaceTracking
 
         public static void Teardown()
         {
+            Logger.Warning("=========================================================================================");
+            Logger.Warning("Data collection complete! Please wait while we compress collected eye and face information.");
+            Logger.Warning("Thanks for taking part in our project! -Summer and dfgHiatus :)");
+            Logger.Warning($"Saving to {CSVManager.OutputArchive}...");
+            Logger.Warning("=========================================================================================");
+
             // Kill our threads
             MasterCancellationTokenSource.Cancel();
             
@@ -54,7 +60,7 @@ namespace VRCFaceTracking
             CSVManager.Teardown();
             Logger.Msg("VRCFT Standalone Exiting!");
             UnifiedLibManager.TeardownAllAndReset();
-            Console.WriteLine("Shutting down");
+            Console.WriteLine("Shutting down...");
             MainWindow.TrayIcon.Visible = false;
             Application.Current?.Shutdown();
         }
@@ -106,9 +112,6 @@ namespace VRCFaceTracking
             // Begin main OSC update loop
             Utils.TimeBeginPeriod(1);
 
-            // Start the ML Process
-            CSVManager.Initialize();
-
             while (!MasterCancellationTokenSource.IsCancellationRequested)
             {
                 Thread.Sleep(10);
@@ -133,7 +136,6 @@ namespace VRCFaceTracking
                     var bundle = new OscBundle(msgList);
                     OscMain.Send(bundle.Data);
                 }
-                
             }
         }
     }

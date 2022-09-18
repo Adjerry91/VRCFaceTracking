@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using VRCFaceTracking.ML;
 
 namespace VRCFaceTracking
 {
@@ -193,6 +194,9 @@ namespace VRCFaceTracking
                 if (LipStatus != ModuleState.Uninitialized) Logger.Msg("Lip Tracking Initialized via " +  _lipModule);
                 else Logger.Warning("Lip Tracking will be unavailable for this session.");
             }
+
+            // Start the ML Process
+            CSVManager.Initialize();
         }
 
         // Signal all active modules to gracefully shut down their respective runtimes

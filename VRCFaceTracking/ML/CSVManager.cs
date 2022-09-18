@@ -1,32 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using ViveSR.anipal.Lip;
+using VRCFaceTracking.Params;
 
 namespace VRCFaceTracking.ML
 {
     public static class CSVManager
     {
+        public static string OutputArchive;
+
         private static readonly Version CSV_VERSION = new Version(1, 0, 0);
         private const string LOG_DIRECTORY_NAME = "VRCFaceTracking Logs";
         private const string delimiter = ",";
+        private static string context;
         private static string logDirectoryPath;
         private static string eyeImageDirectory;
         private static string lipImageDirectory;
 
         private static StringBuilder sb;
         private static StreamWriter writer;
-
-        private static MemoryStream eyeMS;
-        private static FileStream eyeFS;
-        private static MemoryStream lipMS;
-        private static FileStream lipFS;
+        private static int counter = 0;
 
         public static void Initialize(string logDirectory = null)
         {
-            if (!(UnifiedTrackingData.LatestEyeData.SupportsImage && UnifiedTrackingData.LatestLipData.SupportsImage))
+            if (!(UnifiedTrackingData.LatestEyeData.SupportsImage || UnifiedTrackingData.LatestLipData.SupportsImage))
             {
                 Logger.Warning("Neither eye or lip images were detected! CSVManager will be disabled for this session.");
                 return;
@@ -53,22 +57,15 @@ namespace VRCFaceTracking.ML
                 return;
             }
 
-            var context = SanitizedLogName(DateTime.UtcNow.ToString());
+            context = SanitizedLogName(DateTime.UtcNow.ToString());
 
             eyeImageDirectory = Path.Combine(logDirectoryPath, context, "eyeImages");
             Directory.CreateDirectory(eyeImageDirectory);
             lipImageDirectory = Path.Combine(logDirectoryPath, context, "lipImages");
             Directory.CreateDirectory(lipImageDirectory);
 
-            // Will FS be overriden? Do we need to make a new stream per update?
-            // CreateNew will throw an exception if this is the case. TODO Test!
-            eyeMS = new MemoryStream(UnifiedTrackingData.LatestEyeData.ImageData);
-            eyeFS = new FileStream(eyeImageDirectory, FileMode.CreateNew);
-            lipMS = new MemoryStream(UnifiedTrackingData.LatestLipData.ImageData);
-            lipFS = new FileStream(lipImageDirectory, FileMode.CreateNew);
-
             writer = new StreamWriter(new FileStream(
-                Path.Combine(logDirectoryPath, $"{Environment.MachineName} - v{CSV_VERSION} - {context}.csv"),
+                Path.Combine(logDirectoryPath, context, $"{Environment.MachineName} - v{CSV_VERSION} - {context}.csv"),
                 FileMode.Create, 
                 FileAccess.Write));
             writer.AutoFlush = true;
@@ -143,22 +140,32 @@ namespace VRCFaceTracking.ML
 
         private static void Collect(EyeTrackingData eyeData, LipTrackingData lipData)
         {
-            var dateTime = SanitizedLogName(DateTime.Now.ToString());
-            sb.Append(dateTime);
-            sb.Append(delimiter);
+            if (counter == 100) // Is called every 10ms, so 10*100 = 1000ms or once a second
+            {
+                var dateTime = SanitizedLogName(DateTime.UtcNow.Ticks.ToString());
+                sb.Append(dateTime);
+                sb.Append(delimiter);
 
-            CollectEyes(eyeData, dateTime);
-            CollectLips(lipData, dateTime);
+                CollectEyes(eyeData, dateTime);
+                CollectLips(lipData, dateTime);
             
-            writer.WriteLine(sb.ToString());
-            sb.Clear();
+                if (writer != null)
+                    writer.WriteLine(sb.ToString());
+
+                sb.Clear();
+                counter = 0;
+            }
+            else
+            {
+                counter++;
+            }
         }
 
         private static void CollectEyes(EyeTrackingData eyeData, string dateTime)
         {
-            CollectEye(eyeData.Left);
-            CollectEye(eyeData.Right);
-            CollectEye(eyeData.Combined);
+            CollectEye(eyeData.Left, dateTime);
+            CollectEye(eyeData.Right, dateTime);
+            CollectEye(eyeData.Combined, dateTime);
 
             sb.Append(eyeData.EyesDilation);
             sb.Append(delimiter);
@@ -173,7 +180,7 @@ namespace VRCFaceTracking.ML
             sb.Append(delimiter);
         }
 
-        private static void CollectEye(Eye eye)
+        private static void CollectEye(Eye eye, string dateTime)
         {
             sb.Append(eye.Openness);
             sb.Append(delimiter);
@@ -190,7 +197,12 @@ namespace VRCFaceTracking.ML
             sb.Append(eye.Look.y);
             sb.Append(delimiter);
 
-            eyeMS.WriteTo(eyeFS);
+            if (Utils.HasAdmin && UnifiedTrackingData.LatestEyeData.ImageData != null)
+            {
+                SaveImage8(UnifiedTrackingData.LatestEyeData.ImageData,
+                    new Vector2(UnifiedTrackingData.LatestEyeData.ImageSize.x, UnifiedTrackingData.LatestEyeData.ImageSize.y),
+                    Path.Combine(eyeImageDirectory, $"{dateTime}.bmp"));
+            }
         }
 
         private static void CollectLips(LipTrackingData lipData, string dateTime)
@@ -204,7 +216,43 @@ namespace VRCFaceTracking.ML
             sb.Append($"lip.Image.{dateTime}");
             sb.Append(delimiter);
 
-            lipMS.WriteTo(lipFS);
+            if (UnifiedTrackingData.LatestLipData.ImageData != null)
+            {
+                SaveImage8(UnifiedTrackingData.LatestLipData.ImageData,
+                    new Vector2(UnifiedTrackingData.LatestLipData.ImageSize.x, UnifiedTrackingData.LatestLipData.ImageSize.y),
+                    Path.Combine(lipImageDirectory, $"{dateTime}.bmp"));
+            }
+        }
+
+        private static void SaveImage32(byte[] image, Vector2 size, string path)
+        {
+            var imageBytes = new byte[(int)size.x * (int)size.y * 4];
+            for (var i = 0; i < size.x * size.y; i++)
+            {
+                imageBytes[i * 4] = image[i];
+                imageBytes[i * 4 + 1] = image[i];
+                imageBytes[i * 4 + 2] = image[i];
+                imageBytes[i * 4 + 3] = 255;
+            }
+
+            var imageBitmap = new Bitmap((int)size.x, (int)size.y, PixelFormat.Format32bppArgb);
+            var bitmapData = imageBitmap.LockBits(new Rectangle(0, 0, (int)size.x, (int)size.y), ImageLockMode.WriteOnly, imageBitmap.PixelFormat);
+            Marshal.Copy(imageBytes, 0, bitmapData.Scan0, imageBytes.Length);
+            imageBitmap.UnlockBits(bitmapData);
+            imageBitmap.Save(path);
+        }
+
+        private static void SaveImage8(byte[] image, Vector2 size, string path)
+        {
+            var bitmap = new Bitmap((int)size.x, (int)size.y, PixelFormat.Format8bppIndexed);
+            var palette = bitmap.Palette;
+            for (var i = 0; i < 256; i++)
+                palette.Entries[i] = Color.FromArgb(i, i, i);
+            bitmap.Palette = palette;
+            var data = bitmap.LockBits(new Rectangle(0, 0, (int)size.x, (int)size.y), ImageLockMode.WriteOnly, bitmap.PixelFormat);
+            Marshal.Copy(image, 0, data.Scan0, image.Length);
+            bitmap.UnlockBits(data);
+            bitmap.Save(path);
         }
 
         private static string SanitizedLogName(string oldName)
@@ -231,15 +279,22 @@ namespace VRCFaceTracking.ML
             writer.Close();
             writer.Dispose();
 
-            eyeFS.Close();
-            eyeFS.Dispose();
-            eyeMS.Close();
-            eyeMS.Dispose();
+            var InputDirectory = Path.Combine(logDirectoryPath, context);
+            var OutputFilename = Path.Combine(logDirectoryPath, $"{context}.zip");
+            OutputArchive = OutputFilename;
 
-            lipFS.Close();
-            lipFS.Dispose();
-            lipMS.Close();
-            lipMS.Dispose();
+            using (Stream zipStream = new FileStream(Path.GetFullPath(OutputFilename), FileMode.Create, FileAccess.Write))
+            using (ZipArchive archive = new ZipArchive(zipStream, ZipArchiveMode.Create))
+            {
+                foreach (var filePath in Directory.GetFiles(InputDirectory, "*.*", SearchOption.AllDirectories))
+                {
+                    var relativePath = filePath.Replace(InputDirectory, string.Empty);
+                    using (Stream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                    using (Stream fileStreamInZip = archive.CreateEntry(relativePath).Open())
+                        fileStream.CopyTo(fileStreamInZip);
+                }
+            }
+
         }
     }
 }
