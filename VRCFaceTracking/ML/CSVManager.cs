@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -30,7 +28,7 @@ namespace VRCFaceTracking.ML
         {
             if (!(UnifiedTrackingData.LatestEyeData.SupportsImage && UnifiedTrackingData.LatestLipData.SupportsImage))
             {
-                Logger.Warning("Neither eye or lip images were detected! CSVManager will be disabled for this session");
+                Logger.Warning("Neither eye or lip images were detected! CSVManager will be disabled for this session.");
                 return;
             }
 
