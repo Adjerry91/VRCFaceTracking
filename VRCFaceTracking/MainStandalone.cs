@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 using VRCFaceTracking.Assets.UI;
+using VRCFaceTracking.ML;
 using VRCFaceTracking.OSC;
 
 [assembly: AssemblyTitle("VRCFaceTracking")]
@@ -50,6 +51,7 @@ namespace VRCFaceTracking
             MasterCancellationTokenSource.Cancel();
             
             Utils.TimeEndPeriod(1);
+            CSVManager.Teardown();
             Logger.Msg("VRCFT Standalone Exiting!");
             UnifiedLibManager.TeardownAllAndReset();
             Console.WriteLine("Shutting down");
@@ -103,6 +105,10 @@ namespace VRCFaceTracking
 
             // Begin main OSC update loop
             Utils.TimeBeginPeriod(1);
+
+            // Start the ML Process
+            CSVManager.Initialize();
+
             while (!MasterCancellationTokenSource.IsCancellationRequested)
             {
                 Thread.Sleep(10);

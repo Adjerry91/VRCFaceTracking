@@ -53,6 +53,7 @@
     <Compile Include="DependencyManager.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="MainStandalone.cs" />
+    <Compile Include="ML\CSVManager.cs" />
     <Compile Include="OSC\OSCBundle.cs" />
     <Compile Include="OSC\OSCMain.cs" />
     <Compile Include="OSC\OSCMessage.cs" />
