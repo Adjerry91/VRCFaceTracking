@@ -6,7 +6,9 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Policy;
 using System.Text;
+using System.Windows;
 using ViveSR.anipal.Lip;
 using VRCFaceTracking.Params;
 
@@ -27,6 +29,11 @@ namespace VRCFaceTracking.ML
         private static StringBuilder sb;
         private static StreamWriter writer;
         private static int counter = 0;
+
+        private static Bitmap eyeBitmap;
+        private static Bitmap lipBitmap;
+        private static Rectangle eyeBitmapRect;
+        private static Rectangle lipBitmapRect;
 
         public static void Initialize(string logDirectory = null)
         {
@@ -63,7 +70,10 @@ namespace VRCFaceTracking.ML
             Directory.CreateDirectory(eyeImageDirectory);
             lipImageDirectory = Path.Combine(logDirectoryPath, context, "lipImages");
             Directory.CreateDirectory(lipImageDirectory);
-
+                        
+            eyeBitmapRect = new Rectangle(0, 0, UnifiedTrackingData.LatestEyeData.ImageSize.x, UnifiedTrackingData.LatestEyeData.ImageSize.y);
+            lipBitmapRect = new Rectangle(0, 0, UnifiedTrackingData.LatestLipData.ImageSize.x, UnifiedTrackingData.LatestLipData.ImageSize.y);
+            
             writer = new StreamWriter(new FileStream(
                 Path.Combine(logDirectoryPath, context, $"{Environment.MachineName} - v{CSV_VERSION} - {context}.csv"),
                 FileMode.Create, 
@@ -178,6 +188,17 @@ namespace VRCFaceTracking.ML
 
             sb.Append($"eye.Image.{dateTime}");
             sb.Append(delimiter);
+
+            if (Utils.HasAdmin && UnifiedTrackingData.LatestEyeData.SupportsImage && UnifiedTrackingData.LatestEyeData.ImageData != null)
+            {
+                if (eyeBitmap == null)
+                {
+                    eyeBitmap = new Bitmap(UnifiedTrackingData.LatestEyeData.ImageSize.x, UnifiedTrackingData.LatestEyeData.ImageSize.y, PixelFormat.Format8bppIndexed);
+                }
+
+                SaveEyeImage8(UnifiedTrackingData.LatestEyeData.ImageData,
+                    Path.Combine(eyeImageDirectory, $"{dateTime}.bmp"));
+            }
         }
 
         private static void CollectEye(Eye eye, string dateTime)
@@ -196,13 +217,6 @@ namespace VRCFaceTracking.ML
             
             sb.Append(eye.Look.y);
             sb.Append(delimiter);
-
-            if (Utils.HasAdmin && UnifiedTrackingData.LatestEyeData.ImageData != null)
-            {
-                SaveImage8(UnifiedTrackingData.LatestEyeData.ImageData,
-                    new Vector2(UnifiedTrackingData.LatestEyeData.ImageSize.x, UnifiedTrackingData.LatestEyeData.ImageSize.y),
-                    Path.Combine(eyeImageDirectory, $"{dateTime}.bmp"));
-            }
         }
 
         private static void CollectLips(LipTrackingData lipData, string dateTime)
@@ -215,44 +229,41 @@ namespace VRCFaceTracking.ML
 
             sb.Append($"lip.Image.{dateTime}");
             sb.Append(delimiter);
-
-            if (UnifiedTrackingData.LatestLipData.ImageData != null)
+            
+            if (UnifiedTrackingData.LatestLipData.SupportsImage && UnifiedTrackingData.LatestLipData.ImageData != null)
             {
-                SaveImage8(UnifiedTrackingData.LatestLipData.ImageData,
-                    new Vector2(UnifiedTrackingData.LatestLipData.ImageSize.x, UnifiedTrackingData.LatestLipData.ImageSize.y),
+                if (lipBitmap == null)
+                {
+                    lipBitmap = new Bitmap(UnifiedTrackingData.LatestLipData.ImageSize.x, UnifiedTrackingData.LatestLipData.ImageSize.y, PixelFormat.Format8bppIndexed);
+                }
+                
+                SaveLipImage8(UnifiedTrackingData.LatestLipData.ImageData,
                     Path.Combine(lipImageDirectory, $"{dateTime}.bmp"));
             }
         }
 
-        private static void SaveImage32(byte[] image, Vector2 size, string path)
+        private static void SaveEyeImage8(byte[] image, string path)
         {
-            var imageBytes = new byte[(int)size.x * (int)size.y * 4];
-            for (var i = 0; i < size.x * size.y; i++)
-            {
-                imageBytes[i * 4] = image[i];
-                imageBytes[i * 4 + 1] = image[i];
-                imageBytes[i * 4 + 2] = image[i];
-                imageBytes[i * 4 + 3] = 255;
-            }
-
-            var imageBitmap = new Bitmap((int)size.x, (int)size.y, PixelFormat.Format32bppArgb);
-            var bitmapData = imageBitmap.LockBits(new Rectangle(0, 0, (int)size.x, (int)size.y), ImageLockMode.WriteOnly, imageBitmap.PixelFormat);
-            Marshal.Copy(imageBytes, 0, bitmapData.Scan0, imageBytes.Length);
-            imageBitmap.UnlockBits(bitmapData);
-            imageBitmap.Save(path);
-        }
-
-        private static void SaveImage8(byte[] image, Vector2 size, string path)
-        {
-            var bitmap = new Bitmap((int)size.x, (int)size.y, PixelFormat.Format8bppIndexed);
-            var palette = bitmap.Palette;
+            var palette = eyeBitmap.Palette;
             for (var i = 0; i < 256; i++)
                 palette.Entries[i] = Color.FromArgb(i, i, i);
-            bitmap.Palette = palette;
-            var data = bitmap.LockBits(new Rectangle(0, 0, (int)size.x, (int)size.y), ImageLockMode.WriteOnly, bitmap.PixelFormat);
+            eyeBitmap.Palette = palette;
+            var data = eyeBitmap.LockBits(eyeBitmapRect, ImageLockMode.WriteOnly, eyeBitmap.PixelFormat);
             Marshal.Copy(image, 0, data.Scan0, image.Length);
-            bitmap.UnlockBits(data);
-            bitmap.Save(path);
+            eyeBitmap.UnlockBits(data);
+            eyeBitmap.Save(path);
+        }
+
+        private static void SaveLipImage8(byte[] image, string path)
+        {
+            var palette = lipBitmap.Palette;
+            for (var i = 0; i < 256; i++)
+                palette.Entries[i] = Color.FromArgb(i, i, i);
+            lipBitmap.Palette = palette;
+            var data = lipBitmap.LockBits(lipBitmapRect, ImageLockMode.WriteOnly, lipBitmap.PixelFormat);
+            Marshal.Copy(image, 0, data.Scan0, image.Length);
+            lipBitmap.UnlockBits(data);
+            lipBitmap.Save(path);
         }
 
         private static string SanitizedLogName(string oldName)
@@ -294,7 +305,6 @@ namespace VRCFaceTracking.ML
                         fileStream.CopyTo(fileStreamInZip);
                 }
             }
-
         }
     }
 }
