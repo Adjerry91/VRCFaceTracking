@@ -35,6 +35,8 @@ namespace VRCFaceTracking.ML
         private static Rectangle eyeBitmapRect;
         private static Rectangle lipBitmapRect;
 
+        private static bool flag = false;
+
         public static void Initialize(string logDirectory = null)
         {
             if (!(UnifiedTrackingData.LatestEyeData.SupportsImage || UnifiedTrackingData.LatestLipData.SupportsImage))
@@ -285,6 +287,16 @@ namespace VRCFaceTracking.ML
             {
                 Logger.Error("Streamwriter does not exist in the current context");
                 return;
+            }
+
+            if (flag)
+            {
+                Logger.Error("Teardown was called already!");
+                return;
+            }
+            else
+            {
+                flag = true;
             }
 
             writer.Close();
