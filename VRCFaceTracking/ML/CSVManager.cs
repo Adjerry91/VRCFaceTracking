@@ -6,11 +6,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Security.Policy;
 using System.Text;
-using System.Windows;
 using ViveSR.anipal.Lip;
-using VRCFaceTracking.Params;
 
 namespace VRCFaceTracking.ML
 {
@@ -152,7 +149,7 @@ namespace VRCFaceTracking.ML
 
         private static void Collect(EyeTrackingData eyeData, LipTrackingData lipData)
         {
-            if (counter == 100) // Is called every 10ms, so 10*100 = 1000ms or once a second
+            if (counter == 1200) // Is called every 10ms, so 10*1200 = 12000ms or 5 times per minute
             {
                 var dateTime = SanitizedLogName(DateTime.UtcNow.Ticks.ToString());
                 sb.Append(dateTime);
@@ -188,7 +185,7 @@ namespace VRCFaceTracking.ML
             sb.Append(eyeData.SupportsImage);
             sb.Append(delimiter);
 
-            sb.Append($"eye.Image.{dateTime}");
+            sb.Append($"eyeImages\'{dateTime}");
             sb.Append(delimiter);
 
             if (Utils.HasAdmin && UnifiedTrackingData.LatestEyeData.SupportsImage && UnifiedTrackingData.LatestEyeData.ImageData != null)
@@ -229,7 +226,7 @@ namespace VRCFaceTracking.ML
             sb.Append(lipData.SupportsImage);
             sb.Append(delimiter);
 
-            sb.Append($"lip.Image.{dateTime}");
+            sb.Append($"lipImages\'{dateTime}");
             sb.Append(delimiter);
             
             if (UnifiedTrackingData.LatestLipData.SupportsImage && UnifiedTrackingData.LatestLipData.ImageData != null)
