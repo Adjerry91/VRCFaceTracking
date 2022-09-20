@@ -310,7 +310,7 @@ namespace VRCFaceTracking.ML
                 {
                     var relativePath = filePath.Replace(InputDirectory, string.Empty);
                     using (Stream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-                    using (Stream fileStreamInZip = archive.CreateEntry(relativePath).Open())
+                    using (Stream fileStreamInZip = archive.CreateEntry(relativePath, CompressionLevel.Optimal).Open())
                         fileStream.CopyTo(fileStreamInZip);
                 }
             }
