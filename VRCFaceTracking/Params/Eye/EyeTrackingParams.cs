@@ -46,21 +46,21 @@
             
             new EParam((v2, eye) =>
             {
-                if (v2.Left.Widen > 1-v2.Left.Openness)
+                if (v2.Left.Widen > 0)
                     return NormalizeFloat(0, 1, 0.8f, 1, v2.Left.Widen);
                 return NormalizeFloat(0, 1, 0, 0.8f, v2.Left.Openness);
             }, "LeftEyeLidExpanded", 0.5f, true),
 
             new EParam((v2, eye) =>
             {
-                if (v2.Right.Widen > 1-v2.Right.Openness)
+                if (v2.Right.Widen > 0)
                     return NormalizeFloat(0, 1, 0.8f, 1, v2.Right.Widen); 
                 return NormalizeFloat(0, 1, 0, 0.8f, v2.Right.Openness);
             }, "RightEyeLidExpanded", 0.5f, true),
 
             new EParam((v2, eye) =>
             {
-                if (v2.Combined.Widen > 1-v2.Combined.Openness)
+                if (v2.Combined.Widen > 0)
                     return NormalizeFloat(0, 1, 0.8f, 1, v2.Combined.Widen); 
                 return NormalizeFloat(0, 1, 0, 0.8f, v2.Combined.Openness);
             }, "CombinedEyeLidExpanded", 0.5f, true),
@@ -71,27 +71,27 @@
 
             new EParam((v2, eye) =>
             {
-                if (v2.Left.Widen > 1-v2.Left.Openness)
+                if (v2.Left.Widen > 0)
                     return NormalizeFloat(0, 1, 0.8f, 1, v2.Left.Widen); 
-                if (v2.Left.Squeeze > 1-v2.Left.Openness)
+                if (v2.Left.Squeeze > 0)
                     return v2.Left.Squeeze * -1;     
                 return NormalizeFloat(0, 1, 0, 0.8f, v2.Left.Openness);
             } ,"LeftEyeLidExpandedSqueeze", 0.5f, true),
 
             new EParam((v2, eye) =>
             {
-                if (v2.Right.Widen > 1-v2.Right.Openness)
+                if (v2.Right.Widen > 0)
                     return NormalizeFloat(0, 1, 0.8f, 1, v2.Right.Widen); 
-                if (v2.Right.Squeeze > 1-v2.Right.Openness)
+                if (v2.Right.Squeeze > 0)
                     return v2.Right.Squeeze * -1;        
                 return NormalizeFloat(0, 1, 0, 0.8f, v2.Right.Openness);
             } ,"RightEyeLidExpandedSqueeze", 0.5f, true),
 
             new EParam((v2, eye) =>
             {
-                if (v2.Combined.Widen > 1-v2.Combined.Openness)
+                if (v2.Combined.Widen > 0)
                     return NormalizeFloat(0, 1, 0.8f, 1, v2.Combined.Widen); 
-                if (v2.Combined.Squeeze > 1-v2.Combined.Openness)
+                if (v2.Combined.Squeeze > 0)
                     return v2.Combined.Squeeze * -1;      
                 return NormalizeFloat(0, 1, 0, 0.8f, v2.Combined.Openness);
             } ,"CombinedEyeLidExpandedSqueeze", 0.5f, true),
@@ -102,21 +102,21 @@
             
             new BinaryParameter((v2, eye) =>
             {
-                if (v2.Left.Widen > 1-v2.Left.Openness)
+                if (v2.Left.Widen > 0)
                     return v2.Left.Widen;
                 return v2.Left.Openness;
             }, "LeftEyeLidExpanded"),
 
             new BinaryParameter((v2, eye) =>
             {
-                if (v2.Right.Widen > 1-v2.Right.Openness)
+                if (v2.Right.Widen > 0)
                     return v2.Right.Widen;
                 return v2.Right.Openness;
             }, "RightEyeLidExpanded"),
 
             new BinaryParameter((v2, eye) =>
             {
-                if (v2.Combined.Widen > 1-v2.Combined.Openness)
+                if (v2.Combined.Widen > 0)
                     return v2.Combined.Widen;
                 return v2.Combined.Openness;
             }, "CombinedEyeLidExpanded"),
@@ -127,27 +127,27 @@
             
             new BinaryParameter(v2 =>
             {
-                if (v2.Left.Widen > 1-v2.Left.Openness)
+                if (v2.Left.Widen > 0)
                     return v2.Left.Widen; 
-                if (v2.Left.Squeeze > 1-v2.Left.Openness)
+                if (v2.Left.Squeeze > 0)
                     return v2.Left.Squeeze;
                 return v2.Left.Openness;
             }, "LeftEyeLidExpandedSqueeze"),
             
             new BinaryParameter(v2 =>
             {
-                if (v2.Right.Widen > 1-v2.Right.Openness)
+                if (v2.Right.Widen > 0)
                     return v2.Right.Widen; 
-                if (v2.Right.Squeeze > 1-v2.Right.Openness)
+                if (v2.Right.Squeeze > 0)
                     return v2.Right.Squeeze;
                 return v2.Right.Openness;
             }, "RightEyeLidExpandedSqueeze"),
             
             new BinaryParameter((v2, eye) =>
             {
-                if (v2.Combined.Widen > 1-v2.Combined.Openness)
+                if (v2.Combined.Widen > 0)
                     return v2.Combined.Widen; 
-                if (v2.Combined.Squeeze > 1-v2.Combined.Openness)
+                if (v2.Combined.Squeeze > 0)
                     return v2.Combined.Squeeze;
                 return v2.Combined.Openness;
             }, "CombinedEyeLidExpandedSqueeze"),
@@ -158,13 +158,13 @@
 
             // These parameters are used to distinguish when EyeLidExpanded / EyeLidExpandedSqueeze
             // is returning a value as a Widen or Squeeze. Intended for the Bool or Binary param variant.
-            new BoolParameter(v2 => v2.Left.Widen > 1-v2.Left.Openness, "LeftEyeWidenToggle"),
-            new BoolParameter(v2 => v2.Right.Widen > 1-v2.Right.Openness, "RightEyeWidenToggle"),
-            new BoolParameter(v2 => v2.Combined.Widen > 1-v2.Combined.Openness, "EyesWidenToggle"),
+            new BoolParameter(v2 => v2.Left.Widen > 0, "LeftEyeWidenToggle"),
+            new BoolParameter(v2 => v2.Right.Widen > 0, "RightEyeWidenToggle"),
+            new BoolParameter(v2 => v2.Combined.Widen > 0, "EyesWidenToggle"),
 
-            new BoolParameter(v2 => v2.Left.Squeeze > 1-v2.Left.Openness, "LeftEyeSqueezeToggle"),
-            new BoolParameter(v2 => v2.Right.Squeeze > 1-v2.Right.Openness, "RightEyeSqueezeToggle"),
-            new BoolParameter(v2 => v2.Combined.Squeeze > 1-v2.Combined.Openness, "EyesSqueezeToggle"),
+            new BoolParameter(v2 => v2.Left.Squeeze > 0, "LeftEyeSqueezeToggle"),
+            new BoolParameter(v2 => v2.Right.Squeeze > 0, "RightEyeSqueezeToggle"),
+            new BoolParameter(v2 => v2.Combined.Squeeze > 0, "EyesSqueezeToggle"),
 
             #endregion
 
